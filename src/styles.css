@@ -149,3 +149,34 @@
     color: var(--color-foreground);
   }
 }
+
+@theme inline {
+  --color-primary-glow: var(--primary-glow);
+}
+
+@utility bg-gradient-primary {
+  background-image: var(--gradient-primary);
+}
+@utility bg-gradient-soft {
+  background-image: var(--gradient-soft);
+}
+@utility shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+@utility shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+@keyframes ring-fill {
+  from { stroke-dashoffset: var(--ring-circ); }
+  to { stroke-dashoffset: var(--ring-offset-final); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 0.4s ease-out both; }
+.animate-ring { animation: ring-fill 1.2s ease-out forwards; }
