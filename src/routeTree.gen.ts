@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SyncRouteImport } from './routes/sync'
 import { Route as StatsRouteImport } from './routes/stats'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as ActivityRouteImport } from './routes/activity'
@@ -24,6 +25,11 @@ const SyncRoute = SyncRouteImport.update({
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
   path: '/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/activity': typeof ActivityRoute
   '/home': typeof HomeRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/sync': typeof SyncRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/activity': typeof ActivityRoute
   '/home': typeof HomeRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/sync': typeof SyncRoute
 }
@@ -69,15 +77,38 @@ export interface FileRoutesById {
   '/activity': typeof ActivityRoute
   '/home': typeof HomeRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/sync': typeof SyncRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/activity' | '/home' | '/profile' | '/stats' | '/sync'
+  fullPaths:
+    | '/'
+    | '/activity'
+    | '/home'
+    | '/profile'
+    | '/settings'
+    | '/stats'
+    | '/sync'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/activity' | '/home' | '/profile' | '/stats' | '/sync'
-  id: '__root__' | '/' | '/activity' | '/home' | '/profile' | '/stats' | '/sync'
+  to:
+    | '/'
+    | '/activity'
+    | '/home'
+    | '/profile'
+    | '/settings'
+    | '/stats'
+    | '/sync'
+  id:
+    | '__root__'
+    | '/'
+    | '/activity'
+    | '/home'
+    | '/profile'
+    | '/settings'
+    | '/stats'
+    | '/sync'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -85,6 +116,7 @@ export interface RootRouteChildren {
   ActivityRoute: typeof ActivityRoute
   HomeRoute: typeof HomeRoute
   ProfileRoute: typeof ProfileRoute
+  SettingsRoute: typeof SettingsRoute
   StatsRoute: typeof StatsRoute
   SyncRoute: typeof SyncRoute
 }
@@ -103,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/stats'
       fullPath: '/stats'
       preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -141,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActivityRoute: ActivityRoute,
   HomeRoute: HomeRoute,
   ProfileRoute: ProfileRoute,
+  SettingsRoute: SettingsRoute,
   StatsRoute: StatsRoute,
   SyncRoute: SyncRoute,
 }
