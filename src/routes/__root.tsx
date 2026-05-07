@@ -1,7 +1,11 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts, redirect } from "@tanstack/react-router";
 import { Toaster } from "sonner";
+import { auth } from "@/lib/auth";
 
 import appCss from "../styles.css?url";
+
+// Routes that don't require a JWT.
+const PUBLIC_PATHS = ["/", "/auth/login", "/auth/callback"];
 
 function NotFoundComponent() {
   return (
@@ -26,26 +30,36 @@ function NotFoundComponent() {
 }
 
 export const Route = createRootRoute({
+  beforeLoad: ({ location }) => {
+    // localStorage is only available in the browser.
+    if (typeof window === "undefined") return;
+
+    const isPublic = PUBLIC_PATHS.includes(location.pathname);
+
+    if (!isPublic && !auth.isAuthenticated()) {
+      throw redirect({ to: "/auth/login" });
+    }
+
+    // Already logged in — don't show the login page again.
+    if (location.pathname === "/auth/login" && auth.isAuthenticated()) {
+      throw redirect({ to: "/home" });
+    }
+  },
+
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Strydr — Track your life, not just steps" },
+      { title: "Stryder — Track your life, not just steps" },
       { name: "description", content: "A calm, premium step tracker that helps you move with intention." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Strydr" },
+      { property: "og:title", content: "Stryder" },
       { property: "og:description", content: "Track your life, not just steps." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
+    links: [{ rel: "stylesheet", href: appCss }],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { Plus, RefreshCw, Target, Flame } from "lucide-react";
 import { MobileFrame } from "@/components/MobileFrame";
 import { BottomNav } from "@/components/BottomNav";
 import { ProgressRing } from "@/components/ProgressRing";
-import { Plus, RefreshCw, Target, Flame } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/home")({
   component: HomePage,
@@ -21,17 +23,19 @@ function getGoalFromStorage(): number {
   return stored ? parseInt(stored, 10) : 10000;
 }
 
+const actions = [
+  { label: "Add Steps", icon: Plus, to: "/sync" as const },
+  { label: "Sync Data", icon: RefreshCw, to: "/sync" as const },
+  { label: "Set Goal", icon: Target, to: "/settings" as const },
+];
+
 function HomePage() {
+  const [isLoading] = useState(false); // flip to true once backend is wired
+
   const steps = 7842;
   const goal = getGoalFromStorage();
   const remaining = Math.max(0, goal - steps);
   const pct = Math.min(1, steps / goal);
-
-  const actions = [
-    { label: "Add Steps", icon: Plus, to: "/sync" as const },
-    { label: "Sync Data", icon: RefreshCw, to: "/sync" as const },
-    { label: "Set Goal", icon: Target, to: "/settings" as const },
-  ];
 
   return (
     <MobileFrame>
@@ -42,54 +46,98 @@ function HomePage() {
               <p className="text-sm text-muted-foreground">{getGreeting()}</p>
               <h1 className="text-xl font-semibold text-foreground mt-0.5">Hi, Amelia 👋</h1>
             </div>
-            <Link to="/profile" className="w-11 h-11 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold shadow-soft">
+            <Link
+              to="/profile"
+              className="w-11 h-11 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold shadow-soft"
+            >
               A
             </Link>
           </div>
 
-          <div className="mt-7 bg-card rounded-[28px] p-7 shadow-card animate-fade-up">
-            <div className="flex flex-col items-center">
-              <ProgressRing value={pct} size={220} stroke={16}>
-                <div className="text-center">
-                  <p className="text-[42px] leading-none font-bold tracking-tight text-foreground">
-                    {steps.toLocaleString()}
+          {isLoading ? (
+            <HomeSkeleton />
+          ) : (
+            <>
+              <div className="mt-7 bg-card rounded-[28px] p-7 shadow-card animate-fade-up">
+                <div className="flex flex-col items-center">
+                  <ProgressRing value={pct} size={220} stroke={16}>
+                    <div className="text-center">
+                      <p className="text-[42px] leading-none font-bold tracking-tight text-foreground">
+                        {steps.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">
+                        steps today
+                      </p>
+                    </div>
+                  </ProgressRing>
+                  <p className="mt-5 text-sm text-muted-foreground">
+                    Steps remaining:{" "}
+                    <span className="text-foreground font-medium">{remaining.toLocaleString()}</span>
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">steps today</p>
                 </div>
-              </ProgressRing>
-              <p className="mt-5 text-sm text-muted-foreground">
-                Steps remaining: <span className="text-foreground font-medium">{remaining.toLocaleString()}</span>
-              </p>
-            </div>
-          </div>
+              </div>
 
-          <div className="mt-5 grid grid-cols-3 gap-3">
-            {actions.map(({ label, icon: Icon, to }) => (
-              <Link
-                key={label}
-                to={to}
-                className="bg-card rounded-2xl py-4 px-2 flex flex-col items-center gap-2 shadow-card active:scale-95 transition-transform"
-              >
-                <span className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center text-primary">
-                  <Icon size={18} />
-                </span>
-                <span className="text-xs font-medium text-foreground">{label}</span>
-              </Link>
-            ))}
-          </div>
+              <div className="mt-5 grid grid-cols-3 gap-3">
+                {actions.map(({ label, icon: Icon, to }) => (
+                  <Link
+                    key={label}
+                    to={to}
+                    className="bg-card rounded-2xl py-4 px-2 flex flex-col items-center gap-2 shadow-card active:scale-95 transition-transform"
+                  >
+                    <span className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center text-primary">
+                      <Icon size={18} />
+                    </span>
+                    <span className="text-xs font-medium text-foreground">{label}</span>
+                  </Link>
+                ))}
+              </div>
 
-          <div className="mt-5 bg-gradient-primary rounded-2xl p-5 text-primary-foreground flex items-center gap-3 shadow-soft">
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-              <Flame size={18} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">You're {Math.round(pct * 100)}% toward your goal today</p>
-              <p className="text-xs text-primary-foreground/80 mt-0.5">Keep it gentle. Every step counts.</p>
-            </div>
-          </div>
+              <div className="mt-5 bg-gradient-primary rounded-2xl p-5 text-primary-foreground flex items-center gap-3 shadow-soft">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <Flame size={18} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">
+                    You're {Math.round(pct * 100)}% toward your goal today
+                  </p>
+                  <p className="text-xs text-primary-foreground/80 mt-0.5">
+                    Keep it up. Every step counts.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
       <BottomNav />
     </MobileFrame>
+  );
+}
+
+function HomeSkeleton() {
+  return (
+    <>
+      <div className="mt-7 bg-card rounded-[28px] p-7 shadow-card">
+        <div className="flex flex-col items-center gap-4">
+          <Skeleton className="w-[220px] h-[220px] rounded-full" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+      </div>
+      <div className="mt-5 grid grid-cols-3 gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-card rounded-2xl py-4 px-2 flex flex-col items-center gap-2 shadow-card">
+            <Skeleton className="w-10 h-10 rounded-xl" />
+            <Skeleton className="h-3 w-14" />
+          </div>
+        ))}
+      </div>
+      <div className="mt-5 bg-card rounded-2xl p-5 shadow-card flex items-center gap-3">
+        <Skeleton className="w-10 h-10 rounded-xl" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-3 w-36" />
+        </div>
+      </div>
+    </>
   );
 }
