@@ -9,6 +9,16 @@ export const Route = createFileRoute("/sync")({
 
 function SyncPage() {
   const [val, setVal] = useState("");
+
+  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/[^0-9]/g, "");
+    const num = parseInt(raw, 10);
+    if (raw === "") {
+      setVal("");
+    } else if (!isNaN(num) && num >= 0 && num <= 99999) {
+      setVal(String(num));
+    }
+  }
   return (
     <MobileFrame>
       <div className="flex-1 px-6 pt-10 pb-8 flex flex-col">
@@ -24,9 +34,11 @@ function SyncPage() {
             <Footprints size={20} className="text-primary" />
             <input
               value={val}
-              onChange={(e) => setVal(e.target.value)}
+              onChange={handleInput}
               placeholder="Enter steps"
               inputMode="numeric"
+              type="text"
+              maxLength={5}
               className="flex-1 bg-transparent outline-none text-lg font-semibold placeholder:text-muted-foreground/60"
             />
           </div>

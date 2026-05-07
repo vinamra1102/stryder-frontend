@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 interface ProgressRingProps {
   value: number;
   size?: number;
@@ -6,6 +8,8 @@ interface ProgressRingProps {
 }
 
 export function ProgressRing({ value, size = 220, stroke = 14, children }: ProgressRingProps) {
+  const uid = useId();
+  const gradId = `ring-grad-${uid}`;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(1, value));
@@ -14,7 +18,7 @@ export function ProgressRing({ value, size = 220, stroke = 14, children }: Progr
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         <defs>
-          <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="oklch(0.62 0.21 290)" />
             <stop offset="100%" stopColor="oklch(0.78 0.13 290)" />
           </linearGradient>
@@ -31,7 +35,7 @@ export function ProgressRing({ value, size = 220, stroke = 14, children }: Progr
           cx={size / 2}
           cy={size / 2}
           r={r}
-          stroke="url(#ring-grad)"
+          stroke={`url(#${gradId})`}
           strokeWidth={stroke}
           strokeLinecap="round"
           fill="none"

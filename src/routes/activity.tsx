@@ -10,7 +10,7 @@ export const Route = createFileRoute("/activity")({
 const entries = [
   { day: "Today", date: "May 4", steps: 7842, done: false },
   { day: "Sun", date: "May 3", steps: 10500, done: true },
-  { day: "Sat", date: "May 2", steps: 9200, done: true },
+  { day: "Sat", date: "May 2", steps: 9200, done: false },
   { day: "Fri", date: "May 1", steps: 7800, done: false },
   { day: "Thu", date: "Apr 30", steps: 5100, done: false },
   { day: "Wed", date: "Apr 29", steps: 11200, done: true },
