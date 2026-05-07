@@ -8,11 +8,24 @@ export const Route = createFileRoute("/home")({
   component: HomePage,
 });
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function getGoalFromStorage(): number {
+  if (typeof window === "undefined") return 10000;
+  const stored = localStorage.getItem("strydr_goal");
+  return stored ? parseInt(stored, 10) : 10000;
+}
+
 function HomePage() {
   const steps = 7842;
-  const goal = 10000;
-  const remaining = goal - steps;
-  const pct = steps / goal;
+  const goal = getGoalFromStorage();
+  const remaining = Math.max(0, goal - steps);
+  const pct = Math.min(1, steps / goal);
 
   const actions = [
     { label: "Add Steps", icon: Plus, to: "/sync" as const },
@@ -26,7 +39,7 @@ function HomePage() {
         <div className="px-6 pt-10 pb-6">
           <div className="flex items-center justify-between animate-fade-up">
             <div>
-              <p className="text-sm text-muted-foreground">Good morning</p>
+              <p className="text-sm text-muted-foreground">{getGreeting()}</p>
               <h1 className="text-xl font-semibold text-foreground mt-0.5">Hi, Amelia 👋</h1>
             </div>
             <Link to="/profile" className="w-11 h-11 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold shadow-soft">
@@ -70,7 +83,7 @@ function HomePage() {
               <Flame size={18} />
             </div>
             <div>
-              <p className="text-sm font-semibold">You're 78% toward your goal today</p>
+              <p className="text-sm font-semibold">You're {Math.round(pct * 100)}% toward your goal today</p>
               <p className="text-xs text-primary-foreground/80 mt-0.5">Keep it gentle. Every step counts.</p>
             </div>
           </div>

@@ -9,8 +9,19 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const [reminders, setReminders] = useState(true);
-  const [goal, setGoal] = useState(10000);
+  const [goal, setGoal] = useState<number>(() => {
+    if (typeof window === "undefined") return 10000;
+    const stored = localStorage.getItem("strydr_goal");
+    return stored ? parseInt(stored, 10) : 10000;
+  });
   const goals = [5000, 8000, 10000, 12000];
+
+  function handleGoalChange(g: number) {
+    setGoal(g);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("strydr_goal", String(g));
+    }
+  }
 
   return (
     <MobileFrame>
@@ -34,7 +45,7 @@ function SettingsPage() {
             {goals.map((g) => (
               <button
                 key={g}
-                onClick={() => setGoal(g)}
+                onClick={() => handleGoalChange(g)}
                 className={`py-2.5 rounded-xl text-xs font-semibold transition-all ${
                   goal === g ? "bg-gradient-primary text-primary-foreground" : "bg-accent text-foreground"
                 }`}
