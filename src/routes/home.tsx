@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import { Plus, RefreshCw, Target, Flame } from "lucide-react";
 import { MobileFrame } from "@/components/MobileFrame";
 import { BottomNav } from "@/components/BottomNav";
 import { ProgressRing } from "@/components/ProgressRing";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSummary, useMe, useUserSettings } from "@/lib/queries";
 
 export const Route = createFileRoute("/home")({
   component: HomePage,
@@ -17,12 +17,6 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-function getGoalFromStorage(): number {
-  if (typeof window === "undefined") return 10000;
-  const stored = localStorage.getItem("strydr_goal");
-  return stored ? parseInt(stored, 10) : 10000;
-}
-
 const actions = [
   { label: "Add Steps", icon: Plus, to: "/sync" as const },
   { label: "Sync Data", icon: RefreshCw, to: "/sync" as const },
@@ -30,12 +24,19 @@ const actions = [
 ];
 
 function HomePage() {
-  const [isLoading] = useState(false); // flip to true once backend is wired
+  const { data: summary, isLoading: summaryLoading } = useSummary();
+  const { data: user, isLoading: userLoading } = useMe();
+  const { data: settings, isLoading: settingsLoading } = useUserSettings();
 
-  const steps = 7842;
-  const goal = getGoalFromStorage();
+  const isLoading = summaryLoading || userLoading || settingsLoading;
+
+  const steps = summary?.today ?? 0;
+  const goal = settings?.goal ?? parseInt(localStorage.getItem("strydr_goal") ?? "10000", 10);
   const remaining = Math.max(0, goal - steps);
   const pct = Math.min(1, steps / goal);
+
+  const avatarInitial = user?.name ? user.name.charAt(0).toUpperCase() : "?";
+  const displayName = user?.name?.split(" ")[0] ?? "there";
 
   return (
     <MobileFrame>
@@ -44,13 +45,23 @@ function HomePage() {
           <div className="flex items-center justify-between animate-fade-up">
             <div>
               <p className="text-sm text-muted-foreground">{getGreeting()}</p>
-              <h1 className="text-xl font-semibold text-foreground mt-0.5">Hi, Amelia 👋</h1>
+              {userLoading ? (
+                <Skeleton className="h-6 w-32 mt-1" />
+              ) : (
+                <h1 className="text-xl font-semibold text-foreground mt-0.5">
+                  Hi, {displayName} 👋
+                </h1>
+              )}
             </div>
             <Link
               to="/profile"
-              className="w-11 h-11 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold shadow-soft"
+              className="w-11 h-11 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold shadow-soft overflow-hidden"
             >
-              A
+              {user?.picture ? (
+                <img src={user.picture} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                avatarInitial
+              )}
             </Link>
           </div>
 
@@ -101,7 +112,9 @@ function HomePage() {
                     You're {Math.round(pct * 100)}% toward your goal today
                   </p>
                   <p className="text-xs text-primary-foreground/80 mt-0.5">
-                    Keep it up. Every step counts.
+                    {summary?.streak
+                      ? `🔥 ${summary.streak}-day streak — keep it going!`
+                      : "Every step counts."}
                   </p>
                 </div>
               </div>

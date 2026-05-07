@@ -1,21 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import { Settings, Flame, Calendar, TrendingUp } from "lucide-react";
 import { MobileFrame } from "@/components/MobileFrame";
 import { BottomNav } from "@/components/BottomNav";
 import { Skeleton } from "@/components/ui/skeleton";
-import { activityEntries, computeStreak, computeActiveDays } from "@/lib/mock-data";
+import { useMe, useSummary, useUserSettings } from "@/lib/queries";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
 });
 
-const streak = computeStreak(activityEntries);
-const activeDays = computeActiveDays(activityEntries);
-const totalDays = activityEntries.length;
-
 function ProfilePage() {
-  const [isLoading] = useState(false); // flip to true once backend is wired
+  const { data: user, isLoading: userLoading } = useMe();
+  const { data: summary, isLoading: summaryLoading } = useSummary();
+  const { data: settings, isLoading: settingsLoading } = useUserSettings();
+
+  const isLoading = userLoading || summaryLoading || settingsLoading;
+
+  const avatarInitial = user?.name ? user.name.charAt(0).toUpperCase() : "?";
+  const goal = settings?.goal ?? 10000;
 
   return (
     <MobileFrame>
@@ -35,24 +37,37 @@ function ProfilePage() {
         ) : (
           <>
             <div className="mt-6 bg-card rounded-3xl p-6 shadow-card flex flex-col items-center text-center">
-              <div className="w-20 h-20 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-2xl font-semibold shadow-soft">
-                A
+              <div className="w-20 h-20 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-2xl font-semibold shadow-soft overflow-hidden">
+                {user?.picture ? (
+                  <img src={user.picture} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  avatarInitial
+                )}
               </div>
-              <h2 className="mt-4 text-lg font-semibold">Amelia Chen</h2>
-              <p className="text-sm text-muted-foreground">Goal: 10,000 steps / day</p>
+              <h2 className="mt-4 text-lg font-semibold">{user?.name ?? "—"}</h2>
+              <p className="text-sm text-muted-foreground">
+                Goal: {goal.toLocaleString()} steps / day
+              </p>
+              {user?.email && (
+                <p className="text-xs text-muted-foreground/70 mt-0.5">{user.email}</p>
+              )}
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-3">
-              <ProfileStat icon={TrendingUp} label="Total steps (all time)" value="284,920" />
+              <ProfileStat
+                icon={TrendingUp}
+                label="Today"
+                value={`${(summary?.today ?? 0).toLocaleString()} steps`}
+              />
               <ProfileStat
                 icon={Flame}
                 label="Current streak"
-                value={`${streak} ${streak === 1 ? "day" : "days"}`}
+                value={`${summary?.streak ?? 0} ${summary?.streak === 1 ? "day" : "days"}`}
               />
               <ProfileStat
                 icon={Calendar}
-                label="Active days (this week)"
-                value={`${activeDays} / ${totalDays}`}
+                label="This week"
+                value={`${(summary?.week ?? 0).toLocaleString()} steps`}
               />
             </div>
           </>

@@ -23,6 +23,15 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
 
+  // Clear token and send back to login on 401 — session expired or invalid.
+  if (res.status === 401) {
+    auth.clearToken();
+    if (typeof window !== "undefined") {
+      window.location.href = "/auth/login";
+    }
+    throw new ApiError("Session expired. Please sign in again.", 401);
+  }
+
   let json: Record<string, unknown>;
   try {
     json = (await res.json()) as Record<string, unknown>;
