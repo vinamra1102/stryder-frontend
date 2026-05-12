@@ -7,6 +7,7 @@ export const Route = createFileRoute("/auth/login")({
   component: LoginPage,
 });
 
+// The Google OAuth redirect must hit the real backend origin, not the dev proxy.
 const BACKEND_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
 
 function LoginPage() {

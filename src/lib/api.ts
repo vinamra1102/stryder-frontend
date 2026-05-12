@@ -1,6 +1,8 @@
 import { auth } from "./auth";
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
+// In dev, Vite proxies /auth /fitness /user /health → localhost:8000, so no
+// cross-origin request is made. In production, set VITE_API_URL at build time.
+const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
 export class ApiError extends Error {
   constructor(
