@@ -1,11 +1,27 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, redirect } from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { auth } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
 
 import appCss from "../styles.css?url";
 
-// Routes that don't require a JWT.
 const PUBLIC_PATHS = ["/", "/auth/login", "/auth/callback"];
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: (failureCount, error) => {
+        // Never retry on auth errors — api.ts already handles redirect.
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          return false;
+        }
+        return failureCount < 1;
+      },
+    },
+  },
+});
 
 function NotFoundComponent() {
   return (
@@ -31,7 +47,6 @@ function NotFoundComponent() {
 
 export const Route = createRootRoute({
   beforeLoad: ({ location }) => {
-    // localStorage is only available in the browser.
     if (typeof window === "undefined") return;
 
     const isPublic = PUBLIC_PATHS.includes(location.pathname);
@@ -40,7 +55,6 @@ export const Route = createRootRoute({
       throw redirect({ to: "/auth/login" });
     }
 
-    // Already logged in — don't show the login page again.
     if (location.pathname === "/auth/login" && auth.isAuthenticated()) {
       throw redirect({ to: "/home" });
     }
@@ -81,5 +95,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Outlet />
+    </QueryClientProvider>
+  );
 }

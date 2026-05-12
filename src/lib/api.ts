@@ -1,6 +1,8 @@
 import { auth } from "./auth";
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
+// In dev, Vite proxies /auth /fitness /user /health → localhost:8000, so no
+// cross-origin request is made. In production, set VITE_API_URL at build time.
+const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
 export class ApiError extends Error {
   constructor(
@@ -22,6 +24,15 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   };
 
   const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+
+  // Clear token and send back to login on 401 — session expired or invalid.
+  if (res.status === 401) {
+    auth.clearToken();
+    if (typeof window !== "undefined") {
+      window.location.href = "/auth/login";
+    }
+    throw new ApiError("Session expired. Please sign in again.", 401);
+  }
 
   let json: Record<string, unknown>;
   try {

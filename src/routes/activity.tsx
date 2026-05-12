@@ -5,7 +5,9 @@ import { MobileFrame } from "@/components/MobileFrame";
 import { BottomNav } from "@/components/BottomNav";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { activityEntries, goalMetDates, entryToDate } from "@/lib/mock-data";
+import { useStepsHistory, useStepsMonthly, useUserSettings } from "@/lib/queries";
+import { ErrorState } from "@/components/ErrorState";
+import type { DaySteps } from "@/lib/types";
 
 export const Route = createFileRoute("/activity")({
   component: ActivityPage,
@@ -13,17 +15,52 @@ export const Route = createFileRoute("/activity")({
 
 type ViewMode = "list" | "calendar";
 
+const now = new Date();
+const YEAR = now.getFullYear();
+const MONTH = now.getMonth() + 1;
+
+function parseDateStr(dateStr: string): Date {
+  return new Date(dateStr + "T00:00:00");
+}
+
+function formatEntry(item: DaySteps, goal: number) {
+  const date = parseDateStr(item.date);
+  const todayStr = new Date().toDateString();
+  const isToday = date.toDateString() === todayStr;
+  return {
+    day: isToday ? "Today" : date.toLocaleDateString("en-US", { weekday: "short" }),
+    date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    steps: item.steps,
+    done: item.steps >= goal,
+    rawDate: item.date,
+  };
+}
+
 function ActivityPage() {
   const [view, setView] = useState<ViewMode>("list");
-  const [isLoading] = useState(false); // flip to true once backend is wired
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  const { data: settings } = useUserSettings();
+  const goal = settings?.goal ?? parseInt(localStorage.getItem("strydr_goal") ?? "10000", 10);
+
+  const { data: historyData, isLoading: histLoading, error: histError, refetch: refetchHist } = useStepsHistory({ limit: 10 });
+  const { data: monthData, isLoading: monthLoading, error: monthError, refetch: refetchMonth } = useStepsMonthly(YEAR, MONTH);
+
+  const isLoading = view === "list" ? histLoading : monthLoading;
+  const activeError = view === "list" ? histError : monthError;
+  const retry = view === "list" ? refetchHist : refetchMonth;
+
+  const entries = (historyData?.history ?? []).map((item) => formatEntry(item, goal));
+
+  const goalMetDates = (monthData?.days ?? [])
+    .filter((d) => d.steps >= goal)
+    .map((d) => parseDateStr(d.date));
 
   const selectedEntry =
     selectedDate &&
-    activityEntries.find((e) => {
-      if (e.day === "Today") return false;
-      return entryToDate(e.date).toDateString() === selectedDate.toDateString();
-    });
+    (monthData?.days ?? []).find(
+      (d) => parseDateStr(d.date).toDateString() === selectedDate.toDateString(),
+    );
 
   return (
     <MobileFrame>
@@ -52,13 +89,21 @@ function ActivityPage() {
 
         {isLoading ? (
           <ActivitySkeleton />
+        ) : activeError ? (
+          <ErrorState onRetry={() => retry()} />
         ) : view === "list" ? (
-          <ListView />
+          entries.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <ListView entries={entries} />
+          )
         ) : (
           <CalendarView
+            goalMetDates={goalMetDates}
             selectedDate={selectedDate}
             onSelect={setSelectedDate}
             selectedEntry={selectedEntry}
+            goal={goal}
           />
         )}
       </div>
@@ -67,18 +112,14 @@ function ActivityPage() {
   );
 }
 
-function ListView() {
-  if (activityEntries.length === 0) {
-    return <EmptyState />;
-  }
-
+function ListView({ entries }: { entries: ReturnType<typeof formatEntry>[] }) {
   return (
     <div className="mt-6 bg-card rounded-3xl shadow-card overflow-hidden">
-      {activityEntries.map((e, i) => (
+      {entries.map((e, i) => (
         <div
-          key={e.date}
+          key={e.rawDate}
           className={`flex items-center gap-4 px-5 py-4 ${
-            i !== activityEntries.length - 1 ? "border-b border-border/50" : ""
+            i !== entries.length - 1 ? "border-b border-border/50" : ""
           }`}
         >
           <div className="w-12 text-center">
@@ -103,13 +144,17 @@ function ListView() {
 }
 
 function CalendarView({
+  goalMetDates,
   selectedDate,
   onSelect,
   selectedEntry,
+  goal,
 }: {
+  goalMetDates: Date[];
   selectedDate: Date | undefined;
   onSelect: (d: Date | undefined) => void;
-  selectedEntry: (typeof activityEntries)[number] | undefined | false;
+  selectedEntry: DaySteps | undefined | false;
+  goal: number;
 }) {
   return (
     <div className="mt-6 space-y-4">
@@ -118,7 +163,7 @@ function CalendarView({
           mode="single"
           selected={selectedDate}
           onSelect={onSelect}
-          defaultMonth={new Date(2025, 4, 1)}
+          defaultMonth={new Date(YEAR, MONTH - 1, 1)}
           modifiers={{ goalMet: goalMetDates }}
           modifiersClassNames={{
             goalMet: "!bg-primary !text-primary-foreground rounded-full font-semibold",
@@ -135,26 +180,24 @@ function CalendarView({
         <div className="bg-card rounded-2xl p-5 shadow-card flex items-center gap-4 animate-fade-up">
           <div
             className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
-              selectedEntry.done ? "bg-gradient-primary text-primary-foreground" : "bg-accent text-muted-foreground"
+              selectedEntry.steps >= goal
+                ? "bg-gradient-primary text-primary-foreground"
+                : "bg-accent text-muted-foreground"
             }`}
           >
-            {selectedEntry.done ? <Check size={18} /> : <X size={18} />}
+            {selectedEntry.steps >= goal ? <Check size={18} /> : <X size={18} />}
           </div>
           <div>
-            <p className="text-sm font-semibold">
-              {selectedEntry.day} · {selectedEntry.date}
-            </p>
+            <p className="text-sm font-semibold text-muted-foreground">{selectedEntry.date}</p>
             <p className="text-2xl font-bold mt-0.5">{selectedEntry.steps.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">steps</p>
           </div>
         </div>
-      ) : selectedDate ? (
-        <div className="bg-card rounded-2xl p-5 shadow-card text-center">
-          <p className="text-sm text-muted-foreground">No data for this day.</p>
-        </div>
       ) : (
         <div className="bg-card rounded-2xl p-5 shadow-card text-center">
-          <p className="text-sm text-muted-foreground">Tap a day to see its details.</p>
+          <p className="text-sm text-muted-foreground">
+            {selectedDate ? "No data recorded for this day." : "Tap a day to see its details."}
+          </p>
         </div>
       )}
     </div>
