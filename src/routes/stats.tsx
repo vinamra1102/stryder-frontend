@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProgressRing } from "@/components/ProgressRing";
 import { useSummary, useStepsWeek, useStepsMonthly, useUserSettings } from "@/lib/queries";
+import { ErrorState } from "@/components/ErrorState";
 import type { DaySteps } from "@/lib/types";
 
 export const Route = createFileRoute("/stats")({
@@ -46,9 +47,9 @@ function toMonthlyPoints(days: DaySteps[]): { data: number[]; labels: string[] }
 function StatsPage() {
   const [tab, setTab] = useState<Tab>("Weekly");
 
-  const { data: summary, isLoading: summaryLoading } = useSummary();
-  const { data: weekData, isLoading: weekLoading } = useStepsWeek();
-  const { data: monthData, isLoading: monthLoading } = useStepsMonthly(YEAR, MONTH);
+  const { data: summary, isLoading: summaryLoading, error: summaryError, refetch: refetchSummary } = useSummary();
+  const { data: weekData, isLoading: weekLoading, error: weekError, refetch: refetchWeek } = useStepsWeek();
+  const { data: monthData, isLoading: monthLoading, error: monthError, refetch: refetchMonth } = useStepsMonthly(YEAR, MONTH);
   const { data: settings } = useUserSettings();
 
   const goal = settings?.goal ?? parseInt(localStorage.getItem("strydr_goal") ?? "10000", 10);
@@ -57,6 +58,16 @@ function StatsPage() {
     tab === "Daily" ? summaryLoading :
     tab === "Weekly" ? weekLoading :
     monthLoading;
+
+  const activeError =
+    tab === "Daily" ? summaryError :
+    tab === "Weekly" ? weekError :
+    monthError;
+
+  const retry =
+    tab === "Daily" ? refetchSummary :
+    tab === "Weekly" ? refetchWeek :
+    refetchMonth;
 
   return (
     <MobileFrame>
@@ -80,6 +91,8 @@ function StatsPage() {
 
         {isLoading ? (
           <StatsSkeleton tab={tab} />
+        ) : activeError ? (
+          <ErrorState onRetry={() => retry()} />
         ) : tab === "Daily" ? (
           <DailyView summary={summary} goal={goal} />
         ) : tab === "Weekly" ? (

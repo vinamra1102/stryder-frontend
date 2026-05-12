@@ -4,13 +4,14 @@ import { MobileFrame } from "@/components/MobileFrame";
 import { BottomNav } from "@/components/BottomNav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMe, useSummary, useUserSettings } from "@/lib/queries";
+import { ErrorState } from "@/components/ErrorState";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
 });
 
 function ProfilePage() {
-  const { data: user, isLoading: userLoading } = useMe();
+  const { data: user, isLoading: userLoading, error: userError, refetch } = useMe();
   const { data: summary, isLoading: summaryLoading } = useSummary();
   const { data: settings, isLoading: settingsLoading } = useUserSettings();
 
@@ -34,6 +35,8 @@ function ProfilePage() {
 
         {isLoading ? (
           <ProfileSkeleton />
+        ) : userError ? (
+          <ErrorState onRetry={() => refetch()} />
         ) : (
           <>
             <div className="mt-6 bg-card rounded-3xl p-6 shadow-card flex flex-col items-center text-center">

@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStepsHistory, useStepsMonthly, useUserSettings } from "@/lib/queries";
+import { ErrorState } from "@/components/ErrorState";
 import type { DaySteps } from "@/lib/types";
 
 export const Route = createFileRoute("/activity")({
@@ -42,10 +43,12 @@ function ActivityPage() {
   const { data: settings } = useUserSettings();
   const goal = settings?.goal ?? parseInt(localStorage.getItem("strydr_goal") ?? "10000", 10);
 
-  const { data: historyData, isLoading: histLoading } = useStepsHistory({ limit: 10 });
-  const { data: monthData, isLoading: monthLoading } = useStepsMonthly(YEAR, MONTH);
+  const { data: historyData, isLoading: histLoading, error: histError, refetch: refetchHist } = useStepsHistory({ limit: 10 });
+  const { data: monthData, isLoading: monthLoading, error: monthError, refetch: refetchMonth } = useStepsMonthly(YEAR, MONTH);
 
   const isLoading = view === "list" ? histLoading : monthLoading;
+  const activeError = view === "list" ? histError : monthError;
+  const retry = view === "list" ? refetchHist : refetchMonth;
 
   const entries = (historyData?.history ?? []).map((item) => formatEntry(item, goal));
 
@@ -86,6 +89,8 @@ function ActivityPage() {
 
         {isLoading ? (
           <ActivitySkeleton />
+        ) : activeError ? (
+          <ErrorState onRetry={() => retry()} />
         ) : view === "list" ? (
           entries.length === 0 ? (
             <EmptyState />

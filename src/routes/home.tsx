@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { ProgressRing } from "@/components/ProgressRing";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSummary, useMe, useUserSettings } from "@/lib/queries";
+import { ErrorState } from "@/components/ErrorState";
 
 export const Route = createFileRoute("/home")({
   component: HomePage,
@@ -24,7 +25,7 @@ const actions = [
 ];
 
 function HomePage() {
-  const { data: summary, isLoading: summaryLoading } = useSummary();
+  const { data: summary, isLoading: summaryLoading, error: summaryError, refetch } = useSummary();
   const { data: user, isLoading: userLoading } = useMe();
   const { data: settings, isLoading: settingsLoading } = useUserSettings();
 
@@ -67,6 +68,8 @@ function HomePage() {
 
           {isLoading ? (
             <HomeSkeleton />
+          ) : summaryError ? (
+            <ErrorState onRetry={() => refetch()} />
           ) : (
             <>
               <div className="mt-7 bg-card rounded-[28px] p-7 shadow-card animate-fade-up">
